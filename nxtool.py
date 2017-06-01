@@ -92,6 +92,7 @@ p.add_option('-f', '--full-auto', dest="full_auto", action="store_true", help="A
 p.add_option('-t', '--template', dest="template", help="Path to template to apply.")
 p.add_option('--slack', dest="slack", action="store_false", help="Enables less strict mode.")
 p.add_option('--type', dest="type_wl", action="store_true", help="Generate whitelists based on param type")
+p.add_option('--idates', dest="idates", default=datetime.datetime.today().strftime('%Y.%m.%d'), help="Comma separated Dates for ES indexes. ie 2017.06.01,2017.06.02")
 opt.add_option_group(p)
 # group : statistics
 p = OptionGroup(opt, "Statistics Generation")
@@ -103,7 +104,6 @@ p.add_option('-g', '--interactive-generation', dest="int_gen", action="store_tru
 opt.add_option_group(p)
 
 (options, args) = opt.parse_args()
-
 
 try:
     cfg = NxConfig(options.cfg_path)
@@ -154,7 +154,10 @@ try:
     use_ssl = bool(cfg.cfg["elastic"]["use_ssl"])
 except KeyError:
     use_ssl = False
-    
+   
+# Set ES indexes with dates into cfg
+cfg.cfg['idates'] = ','.join([cfg.cfg["elastic"]["index"]+"-"+dd for dd in options.idates.split(',')])
+
 es = elasticsearch.Elasticsearch(cfg.cfg["elastic"]["host"], use_ssl=use_ssl)
 # Get ES version from the client and avail it at cfg
 es_version =  es.info()['version'].get('number', None)

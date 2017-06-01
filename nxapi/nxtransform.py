@@ -605,18 +605,18 @@ class NxTranslate():
             
         return { 'list' : uniques, 'total' :  len(uniques) }
     def index(self, body, eid):
-        return self.es.index(index=self.cfg["elastic"]["index"], doc_type=self.cfg["elastic"]["doctype"], body=body, id=eid)
+        return [self.es.index(index=xindex, doc_type=self.cfg["elastic"]["doctype"], body=body, id=eid) for xindex in self.cfg['idates'].split(',')]
     def search(self, esq, stats=False):
         """ search wrapper with debug """
         debug = False
         
         if debug is True:
-            print "#SEARCH:PARAMS:index="+self.cfg["elastic"]["index"]+", doc_type="+self.cfg["elastic"]["doctype"]+", body=",
+            print "#SEARCH:PARAMS:index="+self.cfg["idates"]+", doc_type="+self.cfg["elastic"]["doctype"]+", body=",
             print "#SEARCH:QUERY:",
             pprint.pprint (esq)
         if len(esq["query"]["bool"]["must"]) == 0:
             del esq["query"]
-        x = self.es.search(index=self.cfg["elastic"]["index"], doc_type=self.cfg["elastic"]["doctype"], body=esq)
+        x = self.es.search(index=self.cfg["idates"], doc_type=self.cfg["elastic"]["doctype"], body=esq)
         if debug is True:
             print "#RESULT:",
             pprint.pprint(x)
