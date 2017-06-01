@@ -15,6 +15,8 @@ from optparse import OptionParser, OptionGroup
 from nxapi.nxtransform import *
 from nxapi.nxparse import *
 
+from datetime import date, timedelta
+
 F_SETPIPE_SZ = 1031  # Linux 2.6.35+
 F_GETPIPE_SZ = 1032  # Linux 2.6.35+
 
@@ -92,7 +94,7 @@ p.add_option('-f', '--full-auto', dest="full_auto", action="store_true", help="A
 p.add_option('-t', '--template', dest="template", help="Path to template to apply.")
 p.add_option('--slack', dest="slack", action="store_false", help="Enables less strict mode.")
 p.add_option('--type', dest="type_wl", action="store_true", help="Generate whitelists based on param type")
-p.add_option('--idates', dest="idates", default=datetime.datetime.today().strftime('%Y.%m.%d'), help="Comma separated Dates for ES indexes. ie 2017.06.01,2017.06.02")
+p.add_option('--idates', dest="idates", default=datetime.datetime.today().strftime('%Y.%m.%d'), help="Comma separated or range dates for ES indexes. ie 2017.06.01:2017.06.04,2017.06.07")
 opt.add_option_group(p)
 # group : statistics
 p = OptionGroup(opt, "Statistics Generation")
@@ -156,7 +158,20 @@ except KeyError:
     use_ssl = False
    
 # Set ES indexes with dates into cfg
-cfg.cfg['idates'] = ','.join([cfg.cfg["elastic"]["index"]+"-"+dd for dd in options.idates.split(',')])
+dates_list = [dd.strip() for dd in options.idates.split(',')]
+dates = []
+for d in dates_list:
+  if ':' in d:
+    drange = [rd.strip() for rd in d.split(':')] 
+    ds = datetime.datetime.strptime(drange[0], "%Y.%m.%d").date()
+    de = datetime.datetime.strptime(drange[1], "%Y.%m.%d").date()
+    delta = de - ds
+    for i in range(delta.days + 1):
+      dates.append((ds + timedelta(days=i)).strftime('%Y.%m.%d'))
+  else:
+    dates.append(d)
+
+cfg.cfg['idates'] = ','.join([cfg.cfg["elastic"]["index"]+"-"+dd for dd in dates])
 
 es = elasticsearch.Elasticsearch(cfg.cfg["elastic"]["host"], use_ssl=use_ssl)
 # Get ES version from the client and avail it at cfg
