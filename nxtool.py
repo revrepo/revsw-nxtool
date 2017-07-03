@@ -99,6 +99,7 @@ opt.add_option_group(p)
 # group : statistics
 p = OptionGroup(opt, "Statistics Generation")
 p.add_option('-x', '--stats', dest="stats", action="store_true", help="Generate statistics about current's db content.")
+p.add_option('--fullstats', dest="fullstats", action="store_true", help="Generate full statistics about current's db content.")
 opt.add_option_group(p)
 # group : interactive generation
 p = OptionGroup(opt, "Interactive Whitelists Generation")
@@ -302,7 +303,7 @@ if options.stats is True:
         except:
             print "--malformed--"
     print translate.red.format("# Top URI(s) :")
-    for e in translate.fetch_top(cfg.cfg["global_filters"], "uri", limit=10):
+    for e in translate.fetch_top(cfg.cfg["global_filters"], "uri", limit=10, fs=options.fullstats):
         try:
             list_e = e.split()
             print '# {0} {1} {2}{3}'.format(translate.grn.format(list_e[0]), list_e[1], list_e[2], list_e[3])
