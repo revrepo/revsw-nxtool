@@ -15,6 +15,8 @@ from optparse import OptionParser, OptionGroup
 from nxapi.nxtransform import *
 from nxapi.nxparse import *
 
+from datetime import date, timedelta
+
 F_SETPIPE_SZ = 1031  # Linux 2.6.35+
 F_GETPIPE_SZ = 1032  # Linux 2.6.35+
 
@@ -92,10 +94,12 @@ p.add_option('-f', '--full-auto', dest="full_auto", action="store_true", help="A
 p.add_option('-t', '--template', dest="template", help="Path to template to apply.")
 p.add_option('--slack', dest="slack", action="store_false", help="Enables less strict mode.")
 p.add_option('--type', dest="type_wl", action="store_true", help="Generate whitelists based on param type")
+p.add_option('--idates', dest="idates", default=datetime.datetime.today().strftime('%Y.%m.%d'), help="Comma separated or range dates for ES indexes. ie 2017.06.01:2017.06.04,2017.06.07")
 opt.add_option_group(p)
 # group : statistics
 p = OptionGroup(opt, "Statistics Generation")
 p.add_option('-x', '--stats', dest="stats", action="store_true", help="Generate statistics about current's db content.")
+p.add_option('--fullstats', dest="fullstats", action="store_true", help="Generate full statistics about current's db content.")
 opt.add_option_group(p)
 # group : interactive generation
 p = OptionGroup(opt, "Interactive Whitelists Generation")
@@ -103,7 +107,6 @@ p.add_option('-g', '--interactive-generation', dest="int_gen", action="store_tru
 opt.add_option_group(p)
 
 (options, args) = opt.parse_args()
-
 
 try:
     cfg = NxConfig(options.cfg_path)
@@ -154,7 +157,23 @@ try:
     use_ssl = bool(cfg.cfg["elastic"]["use_ssl"])
 except KeyError:
     use_ssl = False
-    
+   
+# Set ES indexes with dates into cfg
+dates_list = [dd.strip() for dd in options.idates.split(',')]
+dates = []
+for d in dates_list:
+  if ':' in d:
+    drange = [rd.strip() for rd in d.split(':')] 
+    ds = datetime.datetime.strptime(drange[0], "%Y.%m.%d").date()
+    de = datetime.datetime.strptime(drange[1], "%Y.%m.%d").date()
+    delta = de - ds
+    for i in range(delta.days + 1):
+      dates.append((ds + timedelta(days=i)).strftime('%Y.%m.%d'))
+  else:
+    dates.append(d)
+
+cfg.cfg['idates'] = ','.join([cfg.cfg["elastic"]["index"]+"-"+dd for dd in dates])
+
 es = elasticsearch.Elasticsearch(cfg.cfg["elastic"]["host"], use_ssl=use_ssl)
 # Get ES version from the client and avail it at cfg
 es_version =  es.info()['version'].get('number', None)
@@ -284,7 +303,7 @@ if options.stats is True:
         except:
             print "--malformed--"
     print translate.red.format("# Top URI(s) :")
-    for e in translate.fetch_top(cfg.cfg["global_filters"], "uri", limit=10):
+    for e in translate.fetch_top(cfg.cfg["global_filters"], "uri", limit=10, fs=options.fullstats):
         try:
             list_e = e.split()
             print '# {0} {1} {2}{3}'.format(translate.grn.format(list_e[0]), list_e[1], list_e[2], list_e[3])

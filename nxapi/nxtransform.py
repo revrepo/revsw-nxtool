@@ -529,7 +529,7 @@ class NxTranslate():
 
         wl += '";'
         return wl
-    def fetch_top(self, template, field, limit=10):
+    def fetch_top(self, template, field, limit=10, fs=False):
         """ fetch top items for a given field,
         clears the field if exists in gfilters """
         x = None
@@ -563,13 +563,13 @@ class NxTranslate():
             for x in res['facets']['facet_results']['terms']:
                 ret.append('{0} {1}% (total: {2}/{3})'.format(x['term'], round((float(x['count']) / total) * 100, 2), x['count'], total))
                 count += 1
-                if count > limit:
+                if count > limit and not fs:
                     break
         elif self.cfg["elastic"].get("version", None) in ["2", "5"]:
             for x in res['aggregations']['agg1']['buckets']:
                 ret.append('{0} {1}% (total: {2}/{3})'.format(x['key'], round((float(x['doc_count']) / total) * 100, 2), x['doc_count'], total))
                 count += 1
-                if count > limit:
+                if count > limit and not fs:
                     break
         else:
             print "Unknown / Unspecified ES version in nxapi.json : {0}".format(self.cfg["elastic"].get("version", "#UNDEFINED"))
@@ -605,18 +605,18 @@ class NxTranslate():
             
         return { 'list' : uniques, 'total' :  len(uniques) }
     def index(self, body, eid):
-        return self.es.index(index=self.cfg["elastic"]["index"], doc_type=self.cfg["elastic"]["doctype"], body=body, id=eid)
+        return [self.es.index(index=xindex, doc_type=self.cfg["elastic"]["doctype"], body=body, id=eid) for xindex in self.cfg['idates'].split(',')]
     def search(self, esq, stats=False):
         """ search wrapper with debug """
         debug = False
         
         if debug is True:
-            print "#SEARCH:PARAMS:index="+self.cfg["elastic"]["index"]+", doc_type="+self.cfg["elastic"]["doctype"]+", body=",
+            print "#SEARCH:PARAMS:index="+self.cfg["idates"]+", doc_type="+self.cfg["elastic"]["doctype"]+", body=",
             print "#SEARCH:QUERY:",
             pprint.pprint (esq)
         if len(esq["query"]["bool"]["must"]) == 0:
             del esq["query"]
-        x = self.es.search(index=self.cfg["elastic"]["index"], doc_type=self.cfg["elastic"]["doctype"], body=esq)
+        x = self.es.search(index=self.cfg["idates"], doc_type=self.cfg["elastic"]["doctype"], body=esq)
         if debug is True:
             print "#RESULT:",
             pprint.pprint(x)
