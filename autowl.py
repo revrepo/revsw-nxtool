@@ -123,16 +123,25 @@ def add_wl_for_url(args):
     fh.close()
     rule_str = None
     rules = []
-    for section in re.finditer('#msg:.*\n#Rule.*\n#total.*\n(#peers.*\n)+#uri.*\n(#var_name\s:\s(.*)\n)?\n(BasicRule\s\swl:(\d+).*?\|(.*?)(\|NAME)?");\n', fstr):
-      rule_str = section.group(4)
+    for section in re.finditer('#msg:.*\n#Rule.*\n#total.*\n(#peers.*\n)+#uri.*\n((#var_name\s:\s(.*)\n)*)\n(BasicRule\s\swl:(\d+).*?\|(.*?)(\|NAME)?");\n', fstr):
+      rule_str = section.group(5)
       m=re.match('^(BasicRule\s\swl:\d+\s\")(.*)(\")$', rule_str)
       if m: 
 	g2 = m.group(2).replace('"', '\\"')
 	rule_str = m.group(1) + g2 + m.group(3)
-      rules.append({'id': section.group(5), 'var' : section.group(3), 'mz': section.group(6), 'rule_str': rule_str})
+      if section.group(4) != '':
+	vars = section.group(2).rstrip().split('\n')
+        for ivar in vars:
+	  var = ''
+	  if ivar != None:
+	    v = re.match('^#var_name\s:\s(.*)$', ivar)
+	    if v: var = v.group(1)
+      	  rules.append({'id': section.group(6), 'var' : var, 'mz': section.group(7), 'rule_str': rule_str})
+      else:
+      	rules.append({'id': section.group(6), 'var' : section.group(4), 'mz': section.group(7), 'rule_str': rule_str})
     groups = {}
     for r in rules:
-      var = r['var'] if r['var'] != None else ''
+      var = r['var']
       key = var+r['mz']
       if key in groups.keys():
         groups[key]['ids'].append(r['id'])
@@ -154,7 +163,7 @@ def add_wl_for_url(args):
 
 def generate_wl_file(args, urls):
   if len(urls) == 0:
-    print "Now whitelist file being generated."
+    print "No whitelist file being generated."
     exit(0)
   if os.path.exists(args.wl_rule):
     os.remove(args.wl_rule)
