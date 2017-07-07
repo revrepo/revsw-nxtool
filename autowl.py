@@ -21,6 +21,7 @@ import os
 import re
 import datetime
 import argparse
+from datetime import datetime
 
 def get_options():
   parser = argparse.ArgumentParser(
@@ -42,7 +43,7 @@ def get_options():
       action='store')
   parser.add_argument('-d', '--idates', 
       help="Comma separated or range dates for ES indexes [default: %(default)s]",
-      default=datetime.datetime.today().strftime('%Y.%m.%d'),
+      default=datetime.today().strftime('%Y.%m.%d'),
       metavar='<date(s)>',
       required=False,
       type=str,
@@ -56,12 +57,15 @@ def get_options():
       action='store')
   parser.add_argument('-w', '--wl_rule', 
       help="Generated whiteList rules file path [default: %(default)s]",
-      default="./wl.rule",
+      default="./wl_<domain>.rule",
       metavar='<str>',
       required=False,
       type=str,
       action='store')
-  return parser.parse_args()
+  argv = parser.parse_args()
+  argv.wl_rule = "wl_%s.rule" % argv.server if argv.server != None else "wl.rule"
+  return argv
+  
 
 def gen_current_stat(args):
   dates = args.idates
@@ -94,7 +98,7 @@ def create_template_file(url):
    "uri"  : "%s",
    "zone" : "?",
    "id"   : "?"
-}""" % (url)
+}""" % (url.replace('"', '\\"'))
     fh.write(fstr)
     fh.close()
   except Exception as e:
@@ -119,12 +123,25 @@ def add_wl_for_url(args):
     fh.close()
     rule_str = None
     rules = []
-    for section in re.finditer('#msg:.*\n#Rule.*\n#total.*\n#peers.*\n#uri.*\n(#var_name\s:\s(.*)\n)?\n(BasicRule\s\swl:(\d+).*\|(.*)");\n', fstr):
-      rule_str = section.group(3)
-      rules.append({'id': section.group(4), 'var' : section.group(2), 'mz': section.group(5), 'rule_str': rule_str})
+    for section in re.finditer('#msg:.*\n#Rule.*\n#total.*\n(#peers.*\n)+#uri.*\n((#var_name\s:\s(.*)\n)*)\n(BasicRule\s\swl:(\d+).*?\|(.*?)(\|NAME)?");\n', fstr):
+      rule_str = section.group(5)
+      m=re.match('^(BasicRule\s\swl:\d+\s\")(.*)(\")$', rule_str)
+      if m: 
+	g2 = m.group(2).replace('"', '\\"')
+	rule_str = m.group(1) + g2 + m.group(3)
+      if section.group(4) != '':
+	vars = section.group(2).rstrip().split('\n')
+        for ivar in vars:
+	  var = ''
+	  if ivar != None:
+	    v = re.match('^#var_name\s:\s(.*)$', ivar)
+	    if v: var = v.group(1)
+      	  rules.append({'id': section.group(6), 'var' : var, 'mz': section.group(7), 'rule_str': rule_str})
+      else:
+      	rules.append({'id': section.group(6), 'var' : section.group(4), 'mz': section.group(7), 'rule_str': rule_str})
     groups = {}
     for r in rules:
-      var = r['var'] if r['var'] != None else ''
+      var = r['var']
       key = var+r['mz']
       if key in groups.keys():
         groups[key]['ids'].append(r['id'])
@@ -135,9 +152,9 @@ def add_wl_for_url(args):
     for g in groups.keys():
       sss = groups[g]['rule_str']
       if groups[g]['var'] != '':
-      	sss = re.sub('\|(%s)\"'%(groups[g]['mz']), '|$\\1_VAR:%s\";'%(groups[g]['var']), sss)
+      	sss = re.sub('\|(%s)'%(groups[g]['mz']), '|$\\1_VAR:%s'%(groups[g]['var']), sss)
       ret = re.sub('wl:\d+', 'wl:%s'%(",".join(groups[g]['ids'])), sss)
-      fh.write(ret+'\n')
+      fh.write(ret+';\n')
     fh.close()
   except Exception as e:
     print "Exception during wl line generation: %s" % (e.message)
@@ -146,7 +163,7 @@ def add_wl_for_url(args):
 
 def generate_wl_file(args, urls):
   if len(urls) == 0:
-    print "Now whitelist file being generated."
+    print "No whitelist file being generated."
     exit(0)
   if os.path.exists(args.wl_rule):
     os.remove(args.wl_rule)
@@ -172,6 +189,7 @@ def tag_event_by_wl_file(args):
 
 # Entry point
 def main():
+  #print str(datetime.now())
   args = get_options()
   gen_current_stat(args)
   urls = load_urls_from_stat()
@@ -179,6 +197,7 @@ def main():
   tag_event_by_wl_file(args)
   #check_report()
   print "Done"
+  #print str(datetime.now())
 
 if __name__ == '__main__':
   main()
