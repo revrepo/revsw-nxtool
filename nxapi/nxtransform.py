@@ -561,13 +561,13 @@ class NxTranslate():
         ret = []
         if self.cfg["elastic"].get("version", None) == "1":
             for x in res['facets']['facet_results']['terms']:
-                ret.append('{0} {1}% (total: {2}/{3})'.format(x['term'], round((float(x['count']) / total) * 100, 2), x['count'], total))
+                ret.append('{0} {1}% (total: {2}/{3})'.format(x['term'].encode('utf-8'), round((float(x['count']) / total) * 100, 2), x['count'], total))
                 count += 1
                 if count > limit and not fs:
                     break
         elif self.cfg["elastic"].get("version", None) in ["2", "5"]:
             for x in res['aggregations']['agg1']['buckets']:
-                ret.append('{0} {1}% (total: {2}/{3})'.format(x['key'], round((float(x['doc_count']) / total) * 100, 2), x['doc_count'], total))
+                ret.append('{0} {1}% (total: {2}/{3})'.format(x['key'].encode('utf-8'), round((float(x['doc_count']) / total) * 100, 2), x['doc_count'], total))
                 count += 1
                 if count > limit and not fs:
                     break

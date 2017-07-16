@@ -403,18 +403,19 @@ class ESInject(NxInjector):
 
     #         return False
     #     return True
-    def set_mappings(self):
+    def set_mappings(self, esindex=None):
+	es_index = esindex if esindex != None else self.index
         if self.es_version == '5':
             try:
                 self.es.indices.create(
-                    index=self.index,
+                    index=es_index,
                     ignore=400 # Ignore 400 cause by IndexAlreadyExistsException when creating an index
                 )
             except Exception as idxadd_error:
-                print "Unable to create the index/collection for ES 5.X: "+self.index+" "+self.cfg["elastic"]["doctype"]+ ", Error: " + str(idxadd_error)
+                print "Unable to create the index/collection for ES 5.X: "+es_index+" "+self.cfg["elastic"]["doctype"]+ ", Error: " + str(idxadd_error)
             try:
                 self.es.indices.put_mapping(
-                    index=self.index,
+                    index=es_index,
                     doc_type=self.cfg["elastic"]["doctype"],
                     body={
                         "events" : {
@@ -433,23 +434,23 @@ class ESInject(NxInjector):
                         }
                 })
             except Exception as mapset_error:
-                print "Unable to set mapping on index/collection for ES 5.X: "+self.index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(mapset_error)
+                print "Unable to set mapping on index/collection for ES 5.X: "+es_index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(mapset_error)
                 return
         else:
             try:
                 self.es.create(
-                    index=self.index,
+                    index=es_index,
                     doc_type=self.cfg["elastic"]["doctype"],
                     #            id=repo_name,
                     body={},
                     ignore=409 # 409 - conflict - would be returned if the document is already there
                 )
             except Exception as idxadd_error:
-                print "Unable to create the index/collection : "+self.index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(idxadd_error)
+                print "Unable to create the index/collection : "+es_index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(idxadd_error)
                 return
             try:
                 self.es.indices.put_mapping(
-                    index=self.index,
+                    index=es_index,
                     doc_type=self.cfg["elastic"]["doctype"],
                     body={
                         "events" : {
@@ -465,7 +466,7 @@ class ESInject(NxInjector):
                         }
                 })
             except Exception as mapset_error:
-                print "Unable to set mapping on index/collection : "+self.index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(mapset_error)
+                print "Unable to set mapping on index/collection : "+es_index+" "+self.cfg["elastic"]["doctype"]+", Error: "+str(mapset_error)
                 return
 
 
@@ -474,26 +475,36 @@ class ESInject(NxInjector):
         self.total_objs += len(self.nlist)
         count = 0
         full_body = ""
-        items = []
+	nitems = {}
         for evt_array in self.nlist:
             for entry in evt_array['events']:
-                items.append({"index" : {}})
                 entry['whitelisted'] = "false"
                 entry['comments'] = "import:"+str(datetime.datetime.now())
                 # go utf-8 ?
                 for x in entry.keys():
                     if isinstance(entry[x], basestring):
                         entry[x] = unicode(entry[x], errors='replace')
-                items.append(entry)
+		index_date = entry['date'][:10].replace('-', '.')
+		if index_date in nitems.keys():
+			nitems[index_date].append({"index" : {}})
+		else:
+			nitems[index_date] = [{"index" : {}}]
+		nitems[index_date].append(entry)
                 count += 1
         mapfunc = partial(json.dumps, ensure_ascii=False)
         try:
-            full_body = "\n".join(map(mapfunc,items)) + "\n"
+            for ni in nitems.keys():
+		full_body += "\n".join(map(mapfunc,nitems[ni]))
+	    full_body += "\n"
         except:
             print "Unexpected error:", sys.exc_info()[0]
             print "Unable to json.dumps : "
-            pprint.pprint(items)
-        bulk(self.es, items, index=self.index, doc_type="events", raise_on_error=True)
+	    pprint.pprint(nitems)
+	for ni in nitems.keys():
+		es_index = self.cfg["elastic"]["index"]+'-'+ni
+		if not self.es.indices.exists(index=ni):
+			self.set_mappings(es_index)
+		bulk(self.es, nitems[ni], index=es_index, doc_type="events", raise_on_error=True)
         self.total_commits += count
         logging.debug("Written "+str(self.total_commits)+" events")
         print "Written "+str(self.total_commits)+" events"
