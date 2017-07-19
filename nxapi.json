@@ -1,6 +1,6 @@
 {
 "elastic" : {
- "host" : "127.0.0.1:9200",
+ "host" : "iad02-es05.revsw.net:9200",
  "use_ssl" : false,
  "index" : "nxapi",
  "doctype" : "events",
