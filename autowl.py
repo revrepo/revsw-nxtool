@@ -98,7 +98,7 @@ def dump_wl_file(args):
     fh = open("/tmp/wl_report.wl", 'r')
     fstr = fh.read()
     fh.close()
-    if re.search('0 whitelists', fstr) == None:
+    if re.search('\n0 whitelists', fstr) == None:
     	if os.path.exists(args.wl_rule):
     	  os.remove(args.wl_rule)
     else:
@@ -114,6 +114,7 @@ def dump_wl_file(args):
 	rule_str = m.group(1) + g2 + m.group(3)
       uri = section.group(2)
       mz = section.group(8)
+      nz = section.group(9) if section.group(9) != None else ''
       id = section.group(7)
       varss = []
       if section.group(5) != '':
@@ -124,23 +125,23 @@ def dump_wl_file(args):
 	    v = re.match('^#var_name\s:\s(.*)$', ivar)
 	    if v: var = v.group(1)
 	    if uri in rules.keys():
-		rules[uri].append({'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : var}) 
+		rules[uri].append({'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : var, 'nz' : nz}) 
 	    else:
-		rules[uri] = [{'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : var}]
+		rules[uri] = [{'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : var, 'nz' : nz}]
       else:
 	    if uri in rules.keys():
-		rules[uri].append({'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : ''}) 
+		rules[uri].append({'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : '', 'nz' : nz}) 
 	    else:
-		rules[uri] = [{'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : ''}]
+		rules[uri] = [{'id' : id, 'mz' : mz, 'rule_str' : rule_str, 'var' : '', 'nz' : nz}]
     for uri in rules.keys():
       groups = {}
       for r in rules[uri]:
         var = r['var']
-        key = var+r['mz']
+        key = var+r['mz']+r['nz']
         if key in groups.keys():
           groups[key]['ids'].append(r['id'])
         else:
-          groups[key] = {'ids': [r['id']], 'rule_str': r['rule_str'], 'var' : var, 'mz' : r['mz']}
+          groups[key] = {'ids': [r['id']], 'rule_str': r['rule_str'], 'var' : var, 'mz' : r['mz'], 'nz' : r['nz']}
       fh = open(args.wl_rule, 'a')
       fstr = ""
       for g in groups.keys():
