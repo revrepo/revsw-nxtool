@@ -52,7 +52,7 @@ def macquire(line):
         # print "Got data :)"
         # pprint.pprint(z)
         #print ".",
-        print z
+	if options.verbose == True: print z
         injector.insert(z)
     else:
         pass
@@ -68,6 +68,9 @@ p.add_option('-c', '--config', dest="cfg_path", default="/usr/local/etc/nxapi.js
 p.add_option('--colors', dest="colors", action="store_false", default="true", help="Disable output colorz.")
 # p.add_option('-q', '--quiet', dest="quiet_flag", action="store_true", help="Be quiet.")
 # p.add_option('-v', '--verbose', dest="verb_flag", action="store_true", help="Be verbose.")
+p.add_option('--es_host', dest="es_host", default=None, help="Elastic Search host: [default from config file].")
+p.add_option('--rules', dest="rules", default=None, help="Naxsi rules path: [default from config file].")
+p.add_option('-v', '--verbose', dest="verbose", action="store_true", help="Display imported events in STDOUT")
 opt.add_option_group(p)
 # group : in option
 p = OptionGroup(opt, "Input options (log acquisition)")
@@ -174,7 +177,8 @@ for d in dates_list:
 
 cfg.cfg['idates'] = ','.join([cfg.cfg["elastic"]["index"]+"-"+dd for dd in dates])
 
-es = elasticsearch.Elasticsearch(cfg.cfg["elastic"]["host"], use_ssl=use_ssl)
+es_host = options.es_host if options.es_host !=None else cfg.cfg["elastic"]["host"]
+es = elasticsearch.Elasticsearch(es_host, use_ssl=use_ssl)
 # Get ES version from the client and avail it at cfg
 es_version =  es.info()['version'].get('number', None)
 if es_version is not None:
@@ -183,6 +187,8 @@ if cfg.cfg["elastic"].get("version", None) is None:
     print "Failed to get version from ES, Specify version ['1'/'2'/'5'] in [elasticsearch] section"
     sys.exit(-1)
 
+if options.rules != None:
+    cfg["naxsi"]["rules_path"] = options.rules
 translate = NxTranslate(es, cfg)
 
 

@@ -184,7 +184,8 @@ def main():
   b=generate_wl_file(args)
   if b: 
   	#print str(datetime.now())
-  	tag_event_by_wl_file(args)
+  	#tag_event_by_wl_file(args)
+	True
   print "Done"
   #print str(datetime.now())
 
