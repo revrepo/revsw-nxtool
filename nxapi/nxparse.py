@@ -179,7 +179,7 @@ class NxParser():
     def clean_line(self, line):
         """ returns an array of [date, "NAXSI_..."] from a
         raw log line. 2nd item starts at first naxsi keyword
-        found. #th item is proxy_name data """
+        found. 3th item is proxy_name data """
         ret = [None, None, None]
 
         # Don't try to parse if no naxsi keyword is found
