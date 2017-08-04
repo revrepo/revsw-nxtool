@@ -56,14 +56,22 @@ def get_options():
       type=str,
       action='store')
   parser.add_argument('-w', '--wl_rule', 
-      help="Generated whiteList rules file path [default: %(default)s]",
-      default="./wl_<domain>.rule",
+      help="Generated whiteList rules file path [default: ./wl_<domain>.rule]",
+      default=None,
+      metavar='<str>',
+      required=False,
+      type=str,
+      action='store')
+  parser.add_argument('-eh', '--es_host', 
+      help="Elastic Search host: [default from config file].",
+      default=None,
       metavar='<str>',
       required=False,
       type=str,
       action='store')
   argv = parser.parse_args()
-  argv.wl_rule = "wl_%s.rule" % argv.server if argv.server != None else "wl.rule"
+  if argv.wl_rule == None:
+    argv.wl_rule = "wl_%s.rule" % argv.server if argv.server != None else "wl.rule"
   return argv
   
 
@@ -86,7 +94,8 @@ def generate_wl_report(args):
   dates = args.idates
   cfg = args.cfg
   server = "-s %s" % (args.server) if args.server != None else ""
-  cmd = 'python nxtool.py -c %s %s -t /tmp/temp.tpl --slack --idates=%s --colors > /tmp/wl_report.wl' % (cfg, server, dates)
+  es_host = "--es_host=%s" % (args.es_host) if args.es_host != None else ""
+  cmd = 'python nxtool.py -c %s %s -t /tmp/temp.tpl --slack --idates=%s --colors %s > /tmp/wl_report.wl' % (cfg, server, dates, es_host)
   res = os.system(cmd)
   if res >> 8 != 0:
     print "Error occured during whitelist report generation"
@@ -170,7 +179,8 @@ def tag_event_by_wl_file(args):
   cfg = args.cfg
   wl_rule = args.wl_rule
   server = "-s %s" % (args.server) if args.server != None else ""
-  cmd = "python nxtool.py -c %s %s -w %s --tag  --idates=%s > /dev/null 2>&1" % (cfg, server, wl_rule, dates)
+  es_host = "--es_host=%s" % (args.es_host) if args.es_host != None else ""
+  cmd = "python nxtool.py -c %s %s -w %s --tag  --idates=%s %s > /dev/null 2>&1" % (cfg, server, wl_rule, dates, es_host)
   res = os.system(cmd)
   if res >> 8 != 0:
     print "Error occured during ES events tagging"
