@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##########################################################################
 #
 # NUU:BIT CONFIDENTIAL
@@ -16,7 +17,6 @@
 # from nuu:bit, Inc.
 #
 
-#!/usr/bin/env python
 import os
 import re
 import datetime
