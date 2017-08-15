@@ -179,7 +179,7 @@ class NxParser():
     def clean_line(self, line):
         """ returns an array of [date, "NAXSI_..."] from a
         raw log line. 2nd item starts at first naxsi keyword
-        found. 3th item is proxy_name, 4th is Blocked, 5th is learning_mode """
+        found. 3th item is proxy_name, 4th is blocked, 5th is learning_mode """
         ret = [None, None, None, None, None]
 
         # Don't try to parse if no naxsi keyword is found
@@ -217,9 +217,9 @@ class NxParser():
             return None
 	m=re.search('proxy_name:\s*\"([^\"]*)\"', line[data_end:])
 	if m: ret[2] = m.group(1)
-	m=re.search('Blocked:\s*(\d)', line[data_end:])
+	m=re.search('blocked:\s*(\d)', line[data_end:])
 	if m: ret[3] = m.group(1)
-	m=re.search('Learning_mode:\s*(\d)', line[data_end:])
+	m=re.search('learning_mode:\s*(\d)', line[data_end:])
 	if m: ret[4] = m.group(1)
         return ret
     # attempts to clean and parse a line
@@ -236,9 +236,9 @@ class NxParser():
 	        if clean_dict[2] != None:
 	            e['proxy_name'] = clean_dict[2]
 	        if clean_dict[3] != None:
-	            e['Blocked'] = clean_dict[3]
+	            e['blocked'] = clean_dict[3]
 	        if clean_dict[4] != None:
-	            e['Learning_mode'] = clean_dict[4]
+	            e['learning_mode'] = clean_dict[4]
         return {'date' : clean_dict[0], 'events' : nlist}
     def parse_line(self, line):
         ndict = self.tokenize_log(line)
@@ -277,7 +277,7 @@ class NxParser():
             del self.multiline_buf[event['seed_end']]
         entry = {}
 
-        for x in ['uri', 'server', 'proxy_name', 'Blocked', 'Learning_mode', 'content', 'ip', 'date', 'var_name', 'country']:
+        for x in ['uri', 'server', 'proxy_name', 'blocked', 'learning_mode', 'content', 'ip', 'date', 'var_name', 'country']:
             entry[x] = event.get(x, '')
         clean = entry
 
@@ -444,8 +444,8 @@ class ESInject(NxInjector):
                                 "zone" : {"type": "keyword"},
                                 "server" : {"type": "keyword"},
                                 "proxy_name" : {"type": "keyword"},
-                                "Blocked" : {"type": "keyword"},
-                                "Learning_mode" : {"type": "keyword"},
+                                "blocked" : {"type": "keyword"},
+                                "learning_mode" : {"type": "keyword"},
                                 "whitelisted" : {"type" : "keyword"},
                                 "ip" : {"type" : "keyword"}
                             }
@@ -478,8 +478,8 @@ class ESInject(NxInjector):
                                         "zone" : {"type": "string", "index":"not_analyzed"},
                                         "server" : {"type": "string", "index":"not_analyzed"},
                                         "proxy_name" : {"type": "string", "index":"not_analyzed"},
-                                        "Blocked" : {"type": "string", "index":"not_analyzed"},
-                                        "Learning_mode" : {"type": "string", "index":"not_analyzed"},
+                                        "blocked" : {"type": "string", "index":"not_analyzed"},
+                                        "learning_mode" : {"type": "string", "index":"not_analyzed"},
                                         "whitelisted" : {"type" : "string", "index":"not_analyzed"},
                                         "content" : {"type" : "string", "index":"not_analyzed"},
                                         "ip" : { "type" : "string", "index":"not_analyzed"}
