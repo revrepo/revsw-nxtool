@@ -1,6 +1,6 @@
 {
 "elastic" : {
- "host" : "iad02-es05.revsw.net:9200",
+ "host" : "iad02-es08.revsw.net:9200",
  "use_ssl" : false,
  "index" : "naxsi",
  "doctype" : "events",
