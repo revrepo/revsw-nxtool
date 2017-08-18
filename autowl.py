@@ -95,7 +95,8 @@ def generate_wl_report(args):
   cfg = args.cfg
   server = "-s %s" % (args.server) if args.server != None else ""
   es_host = "--es_host=%s" % (args.es_host) if args.es_host != None else ""
-  cmd = 'python nxtool.py -c %s %s -t /tmp/temp.tpl --slack --idates=%s --colors %s > /tmp/wl_report.wl' % (cfg, server, dates, es_host)
+  # TODO: need to remove the hard-coded file location and take it from a CLI parameter
+  cmd = 'python /opt/revsw-nxtool/nxtool.py -c %s %s -t /tmp/temp.tpl --slack --idates=%s --colors %s > /tmp/wl_report.wl' % (cfg, server, dates, es_host)
   res = os.system(cmd)
   if res >> 8 != 0:
     print "Error occured during whitelist report generation"
